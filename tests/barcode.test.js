@@ -1,0 +1,7 @@
+import {test} from 'node:test';
+import vm from 'node:vm';import fs from 'node:fs';import assert from 'node:assert/strict';
+test('bundled iPhone decoder reads a grocery EAN-13 barcode',()=>{
+const code='3017620422003',L=['0001101','0011001','0010011','0111101','0100011','0110001','0101111','0111011','0110111','0001011'],G=L.map(s=>s.split('').reverse().join('').replace(/[01]/g,c=>c==='0'?'1':'0')),R=L.map(s=>s.replace(/[01]/g,c=>c==='0'?'1':'0')),parity=['LLLLLL','LLGLGG','LLGGLG','LLGGGL','LGLLGG','LGGLLG','LGGGLL','LGLGLG','LGLGGL','LGGLGL'];
+let bits='00000000000'+'101';for(let i=1;i<=6;i++)bits+=(parity[Number(code[0])][i-1]==='L'?L:G)[Number(code[i])];bits+='01010';for(let i=7;i<13;i++)bits+=R[Number(code[i])];bits+='101'+'0000000';
+const width=bits.length*3,height=120,data=new Uint8ClampedArray(width*height*4);for(let y=0;y<height;y++)for(let x=0;x<width;x++){const k=(y*width+x)*4,v=bits[Math.floor(x/3)]==='1'?0:255;data[k]=data[k+1]=data[k+2]=v;data[k+3]=255;}
+const scope={BigInt,console,Uint8ClampedArray,Uint8Array,Int32Array,setTimeout,clearTimeout};scope.window=scope;vm.createContext(scope);vm.runInContext(fs.readFileSync('public/vendor/zxing-browser.min.js','utf8'),scope);const reader=new scope.ZXingBrowser.BrowserMultiFormatOneDReader();const result=reader.decodeFromCanvas({width,height,getContext:()=>({getImageData:()=>({data})})});assert.equal(result.getText(),code);});
